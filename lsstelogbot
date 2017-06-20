@@ -3,9 +3,9 @@
 @ numprocs=`pgrep -f lsstelogbot.py | wc -l` 
 
 if ( $numprocs < 1 ) then 
-cd /scratch/usrname/slack/elog
-setenv PATH /scratch/usrname/slack/anaconda-4.3.11/bin:${PATH}
-python /scratch/usrname/slack/elog/lsstelogbot.py &
+cd /scratch/usrname/lsst-elog/slackelog/python
+setenv PATH /scratch/usrname/lsst-elog/miniconda-4.3.11/bin:${PATH}
+python /scratch/usrname/lsst-elog/slackelog/python/lsstelogbot.py &
 exit 
 
 endif
