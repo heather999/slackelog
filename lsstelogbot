@@ -1,0 +1,11 @@
+#!/bin/csh 
+
+@ numprocs=`pgrep -f lsstelogbot.py | wc -l` 
+
+if ( $numprocs < 1 ) then 
+cd /scratch/usrname/slack/elog
+setenv PATH /scratch/usrname/slack/anaconda-4.3.11/bin:${PATH}
+python /scratch/usrname/slack/elog/lsstelogbot.py &
+exit 
+
+endif
