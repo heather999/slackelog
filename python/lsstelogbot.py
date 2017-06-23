@@ -14,6 +14,7 @@ GET_COMMAND = "/get"
 CATEGORY_COMMAND = "/cat"
 TAG_COMMAND = "/tag"
 CATLIST_COMMAND = "/listcat"
+TAGLIST_COMMAND = "/listtag"
 
 # instantiate Slack & Twilio clients
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
@@ -52,6 +53,8 @@ def handle_command(slack_client, command, channel, user, conn):
             response = conn.get(entry)
         elif command.lower().startswith(CATLIST_COMMAND):
             response = conn.category_list()
+        elif command.lower().startswith(TAGLIST_COMMAND):
+            response = conn.tag_list()
         else: # Assume this is a post
             category, post = extract_command_param(command, CATEGORY_COMMAND)
             if category is None:
@@ -63,12 +66,6 @@ def handle_command(slack_client, command, channel, user, conn):
 
             # Find the user name
             author = find_username(slack_client, user)
-
-            # Extract the category
-            #category, post = extract_command_param(command, CATEGORY_COMMAND)
-            #splitCommand = command.split()
-            #category = splitCommand[splitCommand.index(CATEGORY_COMMAND) + 1]
-            #post = command.replace(CATEGORY_COMMAND + " " + category, " ").strip()
 
             tags = []
             tag, post = extract_command_param(post, TAG_COMMAND)

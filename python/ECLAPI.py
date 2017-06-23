@@ -180,6 +180,7 @@ class ECLConnection:
         req =  urllib2.Request(url=url)
         self._add_signature(req, args, '')
         response = urllib2.urlopen(req)
+        return response.read()        
         
 class ECLEntry:
 
