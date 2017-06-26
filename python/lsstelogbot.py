@@ -4,6 +4,7 @@ import yaml
 from slackclient import SlackClient
 from ECLAPI import ECLConnection, ECLEntry
 import sys
+import xml.etree.ElementTree as etree
 
 # bot's ID as an environment variable
 #BOT_ID = os.environ.get("BOT_ID")
@@ -12,7 +13,7 @@ import sys
 #AT_BOT = "<@" + BOT_ID + ">"
 GET_COMMAND = "/get"
 CATEGORY_COMMAND = "/cat"
-TAG_COMMAND = "/tag"
+TAG_COMMAND = "#"
 CATLIST_COMMAND = "/listcat"
 TAGLIST_COMMAND = "/listtag"
 
@@ -39,6 +40,17 @@ def extract_command_param(text, command):
     else:
         return param, text.replace(command + " " + param, "").strip()
     
+def extract_hashtags(text, command, taglist):
+    try:
+        hashlist = []
+        splitText = text.lower().split()
+        for word in splitText:
+            if word[0] == command and word[1:] in [x.lower() for x in taglist]:
+                hashlist.append(word[1:])
+    except Exception:
+        return None
+    else:
+        return hashlist
 
 
 def handle_command(slack_client, command, channel, user, conn):
@@ -67,10 +79,9 @@ def handle_command(slack_client, command, channel, user, conn):
             # Find the user name
             author = find_username(slack_client, user)
 
-            tags = []
-            tag, post = extract_command_param(post, TAG_COMMAND)
-            if tag is not None:
-                tags.append(tag)
+            xmlTagList = etree.fromstring(conn.tag_list())
+            valid_tag_list=[e.attrib.get('name') for e in xmlTagList.findall('tag')]
+            tags = extract_hashtags(post, TAG_COMMAND, valid_tag_list)
 
             e = ECLEntry(category=category,
                      tags = tags,
@@ -85,7 +96,10 @@ def handle_command(slack_client, command, channel, user, conn):
  
         slack_client.api_call("chat.postMessage", channel=channel,
                           text=response, as_user=True)
-    except Exception:
+    except Exception as e:
+        print e
+        #slack_client.api_call("chat.postMessage", channel=channel,
+        #                  text=e, as_user=True)
         return
 
 
