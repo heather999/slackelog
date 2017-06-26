@@ -40,7 +40,7 @@ def extract_command_param(text, command):
     else:
         return param, text.replace(command + " " + param, "").strip()
     
-def extract_hastags(text, command, taglist):
+def extract_hashtags(text, command, taglist):
     try:
         hashlist = []
         splitText = text.lower().split()
@@ -96,7 +96,10 @@ def handle_command(slack_client, command, channel, user, conn):
  
         slack_client.api_call("chat.postMessage", channel=channel,
                           text=response, as_user=True)
-    except Exception:
+    except Exception as e:
+        print e
+        #slack_client.api_call("chat.postMessage", channel=channel,
+        #                  text=e, as_user=True)
         return
 
 
