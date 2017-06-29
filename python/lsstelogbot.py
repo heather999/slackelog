@@ -6,28 +6,30 @@ from ECLAPI import ECLConnection, ECLEntry
 import sys
 import xml.etree.ElementTree as etree
 
-# bot's ID as an environment variable
-#BOT_ID = os.environ.get("BOT_ID")
-
 # constants
-#AT_BOT = "<@" + BOT_ID + ">"
 GET_COMMAND = "/get"
 CATEGORY_COMMAND = "/cat"
 TAG_COMMAND = "#"
 CATLIST_COMMAND = "/listcat"
 TAGLIST_COMMAND = "/listtag"
 
-# instantiate Slack & Twilio clients
+# Slack channel to eLog category mapping
+categoryDict = {
+                "cam-ir2-ops" : "I+T/IR2 Ops",
+                "elogtest" : "Testing"
+               }
+
+# instantiate Slack clients
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
 
-def find_username(slack_client, id):
-    api_call = slack_client.api_call("users.list")
+def find_slack_member(slack_client, id, list_type, member_type):
+    api_call = slack_client.api_call(list_type)
     if api_call.get('ok'):
         # retrieve all users so we can find author of this post 
-        users = api_call.get('members')
-        for user in users:
-            if 'id' in user and user.get('id') == id:
-                return user['name']
+        slack_list = api_call.get(member_type)
+        for member in slack_list:
+            if 'id' in member and member.get('id') == id:
+                return member['name']
     return None
 
 def extract_command_param(text, command):
@@ -68,16 +70,23 @@ def handle_command(slack_client, command, channel, user, conn):
         elif command.lower().startswith(TAGLIST_COMMAND):
             response = conn.tag_list()
         else: # Assume this is a post
-            category, post = extract_command_param(command, CATEGORY_COMMAND)
-            if category is None:
-                err = "Posting to eLog requires a category indicated by " \
-                      + "/cat [categoryName]"
-                slack_client.api_call("chat.postMessage", channel=channel,
+            # Check if this channel is mapped to an elog category
+            channel_name = find_slack_member(slack_client, channel,"channels.list","channels")
+            if channel_name in categoryDict:
+                category = categoryDict[channel_name]
+                post = command
+            else:
+                category, post = extract_command_param(command, CATEGORY_COMMAND)
+                if category is None:
+                    err = "This Slack channel is not mapped to an eLog " \
+                          + "category, please provide " \
+                          + "/cat [categoryName]"
+                    slack_client.api_call("chat.postMessage", channel=channel,
                           text=err, as_user=True)
-                return        
+                    return        
 
             # Find the user name
-            author = find_username(slack_client, user)
+            author = find_slack_member(slack_client, user,"users.list","members")
 
             xmlTagList = etree.fromstring(conn.tag_list())
             valid_tag_list=[e.attrib.get('name') for e in xmlTagList.findall('tag')]
@@ -97,9 +106,9 @@ def handle_command(slack_client, command, channel, user, conn):
         slack_client.api_call("chat.postMessage", channel=channel,
                           text=response, as_user=True)
     except Exception as e:
-        print e
-        #slack_client.api_call("chat.postMessage", channel=channel,
-        #                  text=e, as_user=True)
+        #print e
+        slack_client.api_call("chat.postMessage", channel=channel,
+                          text=e, as_user=True)
         return
 
 
