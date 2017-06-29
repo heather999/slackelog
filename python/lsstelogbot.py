@@ -16,21 +16,11 @@ TAGLIST_COMMAND = "/listtag"
 # Slack channel to eLog category mapping
 categoryDict = {
                 "cam-ir2-ops" : "I+T/IR2 Ops",
-                "elogtest" : "I+T/IR2 Ops"
+                "elogtest" : "Testing"
                }
 
-# instantiate Slack & Twilio clients
+# instantiate Slack clients
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
-
-def find_username(slack_client, id):
-    api_call = slack_client.api_call("users.list")
-    if api_call.get('ok'):
-        # retrieve all users so we can find author of this post 
-        users = api_call.get('members')
-        for user in users:
-            if 'id' in user and user.get('id') == id:
-                return user['name']
-    return None
 
 def find_slack_member(slack_client, id, list_type, member_type):
     api_call = slack_client.api_call(list_type)
@@ -88,14 +78,14 @@ def handle_command(slack_client, command, channel, user, conn):
             else:
                 category, post = extract_command_param(command, CATEGORY_COMMAND)
                 if category is None:
-                    err = "Posting to eLog requires a category indicated by " \
+                    err = "This Slack channel is not mapped to an eLog " \
+                          + "category, please provide " \
                           + "/cat [categoryName]"
                     slack_client.api_call("chat.postMessage", channel=channel,
                           text=err, as_user=True)
                     return        
 
             # Find the user name
-            #author = find_username(slack_client, user)
             author = find_slack_member(slack_client, user,"users.list","members")
 
             xmlTagList = etree.fromstring(conn.tag_list())
@@ -116,9 +106,9 @@ def handle_command(slack_client, command, channel, user, conn):
         slack_client.api_call("chat.postMessage", channel=channel,
                           text=response, as_user=True)
     except Exception as e:
-        print e
-        #slack_client.api_call("chat.postMessage", channel=channel,
-        #                  text=e, as_user=True)
+        #print e
+        slack_client.api_call("chat.postMessage", channel=channel,
+                          text=e, as_user=True)
         return
 
 
