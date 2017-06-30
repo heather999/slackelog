@@ -102,7 +102,7 @@ def handle_command(slack_client, command, channel, user, ts, conn, url):
                 e.setValue(name="Author", value=author)
 
             # Construct link to Slack post
-            posturl = url + '/' + channel + '/p' + ts
+            posturl = url + '/' + channel + '/p' + ts.replace(".", "").strip()
             e.setValue(name="URL", value = posturl)
 
             response = conn.post(e)
