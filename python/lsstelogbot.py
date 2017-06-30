@@ -55,7 +55,7 @@ def extract_hashtags(text, command, taglist):
         return hashlist
 
 
-def handle_command(slack_client, command, channel, user, conn):
+def handle_command(slack_client, command, channel, user, ts, conn, url):
     """
         Receives messages directed at the bot and determines if they
         are valid. Either an entry is retrieved from the eLog or
@@ -101,6 +101,10 @@ def handle_command(slack_client, command, channel, user, conn):
             if author is not None:
                 e.setValue(name="Author", value=author)
 
+            # Construct link to Slack post
+            posturl = url + '/' + channel + '/p' + ts
+            e.setValue(name="URL", value = posturl)
+
             response = conn.post(e)
  
         slack_client.api_call("chat.postMessage", channel=channel,
@@ -124,8 +128,8 @@ def parse_slack_output(slack_rtm_output, AT_BOT):
             if output and 'text' in output and AT_BOT in output['text']:
                 # return text after the @ mention, whitespace removed
                 return output['text'].split(AT_BOT)[1].strip(), \
-                       output['channel'], output['user']
-    return None, None, None
+                       output['channel'], output['user'], output['ts']
+    return None, None, None, None
 
 
 if __name__ == "__main__":
@@ -138,6 +142,7 @@ if __name__ == "__main__":
     elogUrl1 = config.get('ELOG_URL1')
     elogUrl2 = config.get('ELOG_URL2')
     BOT_ID = config.get('BOT_ID')
+    SLACK_URL = config.get('SLACK_URL')
     AT_BOT = "<@" + BOT_ID + ">"
 
     slack_client = SlackClient(SLACK_BOT_TOKEN)
@@ -148,9 +153,9 @@ if __name__ == "__main__":
     if slack_client.rtm_connect():
         print("StarterBot connected and running!")
         while True:
-            command, channel, user = parse_slack_output(slack_client.rtm_read(), AT_BOT)
+            command, channel, user, ts = parse_slack_output(slack_client.rtm_read(), AT_BOT)
             if command and channel and conn:
-                handle_command(slack_client, command, channel, user, conn)
+                handle_command(slack_client, command, channel, user, ts, conn, SLACK_URL)
             time.sleep(READ_WEBSOCKET_DELAY)
     else:
         print("Connection failed. Invalid Slack token or bot ID?")
