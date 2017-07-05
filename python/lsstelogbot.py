@@ -10,6 +10,9 @@ import xml.etree.ElementTree as etree
 GET_COMMAND = "/get"
 CATEGORY_COMMAND = "/cat"
 TAG_COMMAND = "#"
+ALT_TAG_COMMAND = "<#"
+ALT_TAG_SEPARATOR = "|"
+ALT_TAG_END = ">"
 CATLIST_COMMAND = "/listcat"
 TAGLIST_COMMAND = "/listtag"
 
@@ -47,8 +50,19 @@ def extract_hashtags(text, command, taglist):
         hashlist = []
         splitText = text.lower().split()
         for word in splitText:
-            if word[0] == command and word[1:] in [x.lower() for x in taglist]:
-                hashlist.append(word[1:])
+            if word[0] == command:
+                for i, item in enumerate(taglist):
+                    if item.lower() == word[1:]:
+                        hashlist.append(item)
+                        break
+            elif word[0:2] == ALT_TAG_COMMAND:
+                parseWord = word.split(ALT_TAG_SEPARATOR)
+                chopWord = parseWord[1]
+                for i, item in enumerate(taglist):
+                    # Last char is ">", so remove it
+                    if item.lower() == chopWord[:-1]:
+                        hashlist.append(item)
+                        break
     except Exception:
         return None
     else:
