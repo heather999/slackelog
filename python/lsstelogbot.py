@@ -19,7 +19,7 @@ TAGLIST_COMMAND = "/listtag"
 # Slack channel to eLog category mapping
 categoryDict = {
                 "cam-ir2-ops" : "I+T/IR2 Ops",
-                "elogtest" : "Testing"
+                "elogtest" : "eLogTesting"
                }
 
 # instantiate Slack clients
