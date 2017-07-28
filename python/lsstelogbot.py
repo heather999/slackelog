@@ -1,8 +1,9 @@
 import os
 import time
 import yaml
+import json
 from slackclient import SlackClient
-from ECLAPI import ECLConnection, ECLEntry
+from ECLAPI import ECLConnection, ECLEntry, ECLHTTPError
 import sys
 import xml.etree.ElementTree as etree
 
@@ -15,6 +16,8 @@ ALT_TAG_SEPARATOR = "|"
 ALT_TAG_END = ">"
 CATLIST_COMMAND = "/listcat"
 TAGLIST_COMMAND = "/listtag"
+MAPLIST_COMMAND = "/listmap"
+HELP_COMMAND = "/help"
 
 # Slack channel to eLog category mapping
 categoryDict = {
@@ -22,8 +25,22 @@ categoryDict = {
                 "elogtest" : "eLogTesting"
                }
 
+# Mapping complex categories names with spaces to simple names
+simpleNameDict = {
+              "i+t/camera" : "I+T/Camera Integration",
+              "i+t/cryostat" : "I+T/Cryostat Integration",
+              "i+t/ir2" : "I+T/IR2 Ops",
+              "i+t/test" : "I+T/Test Systems",
+              "sensor/ts1" : "Sensor/TS1 configuration",
+              "sensor/ts2" : "Sensor/TS2 configuration",
+              "sensor/ts3" : "Sensor/TS3 configuration"
+}
+
 # instantiate Slack clients
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
+
+def list_mappings():
+    return json.dumps(simpleNameDict) + "\n" + json.dumps(categoryDict)
 
 def find_slack_member(slack_client, id, list_type, member_type):
     api_call = slack_client.api_call(list_type)
@@ -40,10 +57,15 @@ def extract_command_param(text, command):
         splitLowerText = text.lower().split()
         splitText = text.split()
         param = splitText[splitLowerText.index(command) + 1]
+    # Check for simple category names
+        if param.lower() in simpleNameDict:
+            cat = simpleNameDict[param.lower()]
+        else:
+            cat = param
     except Exception:
         return None, text
     else:
-        return param, text.replace(command + " " + param, "").strip()
+        return cat, text.replace(command + " " + param, "").strip()
     
 def extract_hashtags(text, command, taglist):
     try:
@@ -83,6 +105,8 @@ def handle_command(slack_client, command, channel, user, ts, conn, url):
             response = conn.category_list()
         elif command.lower().startswith(TAGLIST_COMMAND):
             response = conn.tag_list()
+        elif command.lower().startswith(MAPLIST_COMMAND):
+            response = list_mappings()
         else: # Assume this is a post
             # Check if this channel is mapped to an elog category
             channel_name = find_slack_member(slack_client, channel,"channels.list","channels")
@@ -123,6 +147,10 @@ def handle_command(slack_client, command, channel, user, ts, conn, url):
  
         slack_client.api_call("chat.postMessage", channel=channel,
                           text=response, as_user=True)
+    except ECLHTTPError as eclError:
+        slack_client.api_call("chat.postMessage", channel=channel,
+                          text=eclError.__dict__, as_user=True)
+        return 
     except Exception as e:
         #print e
         slack_client.api_call("chat.postMessage", channel=channel,
