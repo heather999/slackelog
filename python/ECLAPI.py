@@ -42,6 +42,10 @@ class ECLHTTPError(ECLAPIException):
         
     def __str__(self):
         return '%s %s' % (self.Code, self.Body)
+  
+    def __repr__(self):
+        return self.Message
+
 
 class ECLConnection:
 
@@ -157,7 +161,10 @@ class ECLConnection:
             url += '?' + args
         req =  urllib2.Request(url=url)
         self._add_signature(req, args, '')
-        response = urllib2.urlopen(req)
+        try:                  
+            response = urllib2.urlopen(req)
+        except HTTPError, error:
+            raise ECLHTTPError(error.code, error.msg, error.fp.read()) 
         return response.read()        
         
     def category_list(self):
